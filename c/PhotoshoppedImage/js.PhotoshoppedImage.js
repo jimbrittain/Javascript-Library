@@ -9,6 +9,7 @@ function PhotoshoppedImages(){
 	this.unshopped_class = 'unshopped';
 	this.direction = 'right';
 	this.mouserecord = '';
+	this.varyclip = true;
 	this.psimages = []; 
 	this.construct(); }
 PhotoshoppedImages.prototype.construct = function(){
@@ -67,14 +68,30 @@ PhotoshoppedImages.prototype.setClipDirection = function(dir, obj){ //obj is opt
 			if(obj !== undefined){
 				var n = this.findImage(obj);
 				if(n instanceof PhotoshoppedImage){ 
-					n.setClipDirection();
+					n.setClipDirection(dir);
 					return true;
 				} else { return false;  }
 			} else {
+				this.direction = dir;
 				for(var i = 0, imax = this.psimages.length; i<imax; i+=1){
-					this.psimages[i].setClipDirection(); }}
+					this.psimages[i].setClipDirection(dir); }}
+				return true;
 		} else { return false; }
 	} else { return false; }};
+PhotoshoppedImages.prototype.varyClipDirection = function(boo, obj){
+	boo = (boo !== undefined && (boo === true || boo === false)) ? boo : -1;
+	boo = (boo === -1) ? !this.varyclip : boo;
+	if(obj !== undefined){
+		var n = this.findImage(obj);
+		if(n instanceof PhotoshoppedImage){ 
+			n.varyClipDirection(boo);
+			return true;
+		} else { return false; }
+	} else {
+		this.varyclip = boo;
+		for(var i=0, imax = this.psimages.length; i<imax; i+=1){
+			this.psimages[i].varyClipDirection(boo); }
+		return true; }};
 
 function PhotoshoppedImage(o){ 
 	this.id = -1;
@@ -85,6 +102,7 @@ function PhotoshoppedImage(o){
 	this.full_width = 300;
 	this.full_height = 1000;
 	this.direction = this.master.direction;
+	this.varyclip = this.master.varyclip;
 	this.initiated = false;
 	this.working = false;
 	this.currentpos = new Coordinates();
@@ -203,13 +221,46 @@ PhotoshoppedImage.prototype.moveActions = function(obj){
 			obj.setDownActions(); }
 	} else { obj.removeMoveActions(); }
 	this.currentpos = new Coordinates(obj.master.mouserecord.x, obj.master.mouserecord.y); };
+PhotoshoppedImage.prototype.detectClipDirection = function(){
+	var onCoords = new Coordinates(this.master.mouserecord.x, this.master.mouserecord.y);
+	if(!this.working){
+		var bounds = new BoundaryCoordinates(this.holder);
+		var o = {
+			'top' : onCoords.y - bounds.y1, 
+			'bottom' : onCoords.y - bounds.y2, 
+			'left' : onCoords.x - bounds.x1, 
+			'right' : onCoords.x - bounds.x2 };
+		var dir = '', lowest = bounds.y2;
+		for(var prop in o){
+			if(o.hasOwnProperty(prop)){
+				if(Math.abs(o[prop]) <= lowest){
+					lowest = Math.abs(o[prop]);
+					dir = prop; }}}
+		switch(dir){
+			case "top":
+				dir = 'bottom';
+				break;
+			case "bottom":
+				dir = 'top';
+				break;
+			case "right":
+				dir = 'left';
+				break;
+			case "left":
+			/*falls through*/
+			default:
+				dir = 'right';
+				break; }
+		this.setClipDirection(dir); }};
 PhotoshoppedImage.prototype.setDownActions = function(obj){
 	obj = (obj instanceof PhotoshoppedImage) ? obj.master.findImage(obj.id) : this;
-	fetter(obj.holder, "mouseenter touchdown", function(){ obj.downActions(obj); }, false);
+	fetter(obj.holder, "mouseenter", function(){ if(obj.varyclip){ obj.detectClipDirection(); }}, true);
+	fetter(obj.holder, "mouseenter touchstart", function(){ obj.downActions(obj); }, false);
 	return true; };
 PhotoshoppedImage.prototype.removeDownActions = function(obj){
 	obj = (obj instanceof PhotoshoppedImage) ? obj.master.findImage(obj.id) : this;
-	unfetter(obj.holder, "mouseenter touchdown", function(){ obj.downActions(obj); }, false);
+	unfetter(obj.holder, "mouseenter", function(){ if(obj.varyclip){ obj.detectClipDirection(); }}, true);
+	unfetter(obj.holder, "mouseenter touchstart", function(){ obj.downActions(obj); }, false);
 	return true; };
 PhotoshoppedImage.prototype.downActions = function(obj){
 	obj = (obj instanceof PhotoshoppedImage) ? obj.master.findImage(obj.id) : this;
@@ -222,11 +273,11 @@ PhotoshoppedImage.prototype.setUpActions = function(obj){
 	obj = (obj instanceof PhotoshoppedImage) ? obj.master.findImage(obj.id) : this;
 	obj.removeUpActions(obj);
 	obj.setDownActions(obj);
-	fetter(obj.holder, "mouseleave touchup", function(){ obj.upActions(obj); }, false);
+	fetter(obj.holder, "mouseleave touchend", function(){ obj.upActions(obj); }, false);
 	return true; };
 PhotoshoppedImage.prototype.removeUpActions = function(obj){
 	obj = (obj instanceof PhotoshoppedImage) ? obj.master.findImage(obj.id) : this;
-	unfetter(obj.holder, "mouseleave touchup", function(){ obj.upActions(obj); }, false);
+	unfetter(obj.holder, "mouseleave touchend", function(){ obj.upActions(obj); }, false);
 	return true; };
 PhotoshoppedImage.prototype.upActions = function(obj){
 	obj = (obj instanceof PhotoshoppedImage) ? obj.master.findImage(obj.id) : this;
@@ -237,6 +288,11 @@ PhotoshoppedImage.prototype.upActions = function(obj){
 	obj.setDownActions(); 
 	return true; };
 PhotoshoppedImage.prototype.offCoordinates = function(){ return (new Coordinates((this.direction === 'left') ? this.full_width : 0, (this.direction === 'top') ? this.full_height : 0)); };
+PhotoshoppedImage.prototype.varyClipDirection = function(boo){
+	boo = (boo !== undefined && (boo === true || boo === false)) ? boo : -1;
+	boo = (boo === -1) ? !this.varyclip : boo;
+	this.varyclip = boo;
+	return true; };
 PhotoshoppedImage.prototype.setClipDirection = function(dir){
 	dir = (dir === 'up') ? 'bottom' : dir;
 	dir = (dir === 'down') ? 'top' : dir;
