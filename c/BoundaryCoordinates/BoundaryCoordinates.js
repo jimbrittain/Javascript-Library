@@ -1,5 +1,5 @@
 "use strict";
-/* global isHTMLElement, findElementStyle, window, $ */
+/* global isHTMLElement, findElementStyle, window, Coordinates, isNumber, $ */
 /*jshint -W069 */
 function BoundaryCoordinates(args){
 	var _x1 = "", _x2 = "", _y1 = "", _y2 = "", _width = "", _height = "";
@@ -184,7 +184,7 @@ function BoundaryCoordinates(args){
 	if(args !== undefined){ this.init(args); }
 }
 
-BoundaryCoordinates.prototype.init = function(args){
+BoundaryCoordinates.prototype.init = function(args){ 
 	var isHTML = (isHTMLElement !== undefined && args !== undefined && isHTMLElement(args)) ? true : false;
 	if(isHTML){
 		this.elementType = "HTML";
@@ -238,3 +238,17 @@ BoundaryCoordinates.prototype.setLeft = function(x){ this.setX1(x); };
 BoundaryCoordinates.prototype.setRight = function(x){ this.setX2(x); };
 BoundaryCoordinates.prototype.setTop = function(y){ this.setY1(y); };
 BoundaryCoordinates.prototype.setBottom = function(y){ this.setY2(y); };
+BoundaryCoordinates.prototype.isOver = function(co_x, co_y){
+	var co = null;
+	if(co_x instanceof BoundaryCoordinates){
+		var b = co_x;
+		return ((b.x1 >= this.x1 && b.x2 <= this.x2) && (b.y1 >= this.y1 && b.y2 <= this.y2)) ? true : false; 
+	} else if(co_x instanceof Coordinates){
+		co = co_x;
+	} else {
+		var x = parseFloat(co_x);
+		var y = (co_y !== undefined) ? parseFloat(co_y) : 0;
+		co = new Coordinates(x,y); }
+	return ((co.x >= this.x1 && co.x <= this.x2) && (co.y >= this.y1 && this.y2 <= co.y)) ? true : false; };
+
+

@@ -22,6 +22,29 @@ DragGlobal.prototype.add = function(dm){
 			this.masters.push(dm);
 			return true; }}
 	return false; };
+
+DragGlobal.prototype.findDragMasterFromElement = function(elem){
+	var hold = -1;
+	if(elem !== undefined && isHTMLElement(elem)){
+		for(var i=0, imax=this.masters.length; i<imax; i+=1){
+			for(var j=(this.masters[i].draggableObjects.length - 1); j>-1; j-=1){
+				var on_selection = this.masters[i].draggableObjects[j];
+				if(on_selection.controllerElement === elem || on_selection.dragElement === elem){
+					hold = this.masters[i];
+					break; }}}}
+	return (hold !== -1 && hold instanceof DragMaster) ? hold : null; };
+
+DragGlobal.prototype.findDragObjectFromElement = function(elem){
+	var hold = -1;
+	if(elem !== undefined && isHTMLElement(elem)){
+		for(var i=0, imax = this.masters.length; i<imax; i+=1){
+			for(var j=(this.masters[i].draggableObjects.length - 1); j>-1; j-=1){
+				var on_selection = this.masters[i].draggableObjects[j];
+				if(on_selection.controllerElement === elem || on_selection.dragElement === elem){
+					hold = on_selection;
+					break; }}}}
+	return (hold !== -1 && hold instanceof DragObject) ? hold : null; };
+
 DragGlobal.prototype.disableSelection = function(){
 	var c = this;
 	fetter(document, 'dragstart', function(e){ (new DragGlobal()).disableCover(e); return false; }, true);
@@ -445,7 +468,12 @@ DragObject.prototype.initActiveControls = function(){
 
 DragObject.prototype.initRestingControls = function(){
 	var c = this, m = this.master;
-	var f = function(e){ c.beginDrag(e); c.uid = Number(c.uid); };
+	var f = function(e){ 
+		var elem = ('srcElement' in e) ? e.srcElement : (('target' in e) ? e.target : c.controllerElement);
+		var on_drag_object = (new DragGlobal()).findDragObjectFromElement(elem);
+		c = (on_drag_object !== null && c !== on_drag_object) ? on_drag_object : c;
+		c.beginDrag(e); 
+		c.uid = Number(c.uid); };
 	fetter(this.controllerElement, 'mousedown', f, true);
 	fetter(this.controllerElement, 'touchstart', f, true);
 	(new DragGlobal()).clearStopControls(); };

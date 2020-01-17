@@ -10,7 +10,7 @@
  * @return {Measurement String}
  * @copyright JDB 2014
  * @author Immature Dawn
- * @requires isHTMLElement
+ * @requires isHTMLElement, findElementsByTag
  */
 function measure(n, r, elem){
 	var fs = 16, w = 1024, em_size = 1, id_name = 'measuretester_0104', i=0, max=0, tp = {}; 
